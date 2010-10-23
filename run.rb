@@ -131,7 +131,7 @@ convertor.virtual_root = Pathname.new( filename ).parent
 proper_filename = File.expand_path(filename).gsub('/', '\\')
 proper_filename = File.expand_path(filename) unless File.exists?( proper_filename )
 ast = nil
-if File.exists?( filename + 'c' )
+if File.exists?( filename + 'c' ) && false
 	data = nil
 	File.open( filename + 'c', 'r' ) do |file|
 		file.binmode
