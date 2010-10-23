@@ -1,0 +1,32 @@
+.normal {}
+.comment { color: #070; font-style: italic; }
+.keyword { color: #A00; font-weight: bold; }
+.method { color: #077; }
+.class { color: #074; }
+.module { color: #050; }
+.punct { color: #447; font-weight: bold; }
+.symbol { color: #099; }
+.string { color: #944; }
+.char { color: #F07; }
+.ident { color: #004; }
+.constant { color: #07F; }
+.regex { color: #B66; }
+.number { color: #D55; }
+.attribute { color: #377; }
+.global { color: #3B7; }
+.expr { color: #227; }
+.asp_marker { color: black; background: yellow; font-weight: bold; }
+.operator { color: silver; }
+.builtin { color: orange; }
+
+.paren { color: green; }
+.expression .paren { color: red; }
+.expression .expression .paren { color: blue; }
+.expression .expression .expression .paren { color: orange; }
+.expression .expression .expression .expression .paren { color: purple; }
+.expression .expression .expression .expression .expression .paren { color: green; }
+.expression .expression .expression .expression .expression .expression .paren { color: red; }
+
+.operator_assignment { background: red; }
+.operator_equals { background: green; }
+
