@@ -37,7 +37,7 @@ prechigh
 	left TO IN STEP
 	left ELSEIF ELSE
 	left ':'
-	left newline
+	left newline fake_newline
 	left '%>'
 preclow
 options no_result_var
@@ -90,13 +90,12 @@ rule
 		| opt_html '<%' file '%>' opt_newline { val[0].push val[2] }
 	opt_newline
 		: /* nothing */ {nil}
-		| opt_newline newline {nil}
+		| opt_newline any_newline {nil}
 	file
 		: {[]}
 		| file filecontent { val[0].append val[1] }
 	filecontent
 		: statement
-		| comment newline {nil}
 		| class_def
 		| method_def
 	class_def
@@ -110,7 +109,7 @@ rule
 		: class_member
 		| class_method_def
 		| class_property_def
-		| newline {[]}
+		| any_newline {[]}
 	class_member
 		: scope ident_def end_statement
 	ident_def_list
@@ -250,13 +249,13 @@ rule
 							:lvalue => Rasp::Expression::Variable.new(:variable_name => val[1]), 
 							:rvalue => val[6]))]) }
 	single_line_if
-		: IF expression THEN simple_statement_chain newline
+		: IF expression THEN simple_statement_chain opt_comment any_newline
 			{ Rasp::Conditional.new :token => val[0], :condition => val[1], :true_part => val[3], :false_part => nil }
 		| IF expression THEN single_line_if
 			{ Rasp::Conditional.new :token => val[0], :condition => val[1], :true_part => val[3], :false_part => nil }
 		| IF expression THEN simple_statement_chain ELSE single_line_if
 			{ Rasp::Conditional.new :token => val[0], :condition => val[1], :true_part => val[3], :false_part => val[5] }
-		| IF expression THEN simple_statement_chain ELSE simple_statement_chain newline
+		| IF expression THEN simple_statement_chain ELSE simple_statement_chain opt_comment any_newline
 			{ Rasp::Conditional.new :token => val[0], :condition => val[1], :true_part => val[3], :false_part => val[5] }
 	full_if_block
 		: IF expression THEN end_statement
@@ -358,8 +357,8 @@ rule
 		| TRUE { true }
 		| FALSE { false }
 	string
-		: '\"' string_contents '\"' { val[1] }
-		| '\"' '\"' { '' }
+		: '"' string_contents '"' { val[1] }
+		| '"' '"' { '' }
 	string_contents
 		: string_atom
 		| string_contents string_atom { val[0] + val[1] }
@@ -374,10 +373,16 @@ rule
 	function_call
 		: identifier arg_paren opt_expression_list ')' { Rasp::Expression::MethodCall.new :token => val[0], :expect_return => true, :method_name => val[0], :arguments => val[2] }
 		| identifier { Rasp::Expression::MethodCall.new :token => val[0], :expect_return => true, :method_name => val[0], :arguments => [] }
+	any_newline
+		: newline {"\n"}
+		| fake_newline {""}
 	end_statement
 		: ':' {nil}
-		| comment newline {nil}
-		| newline {nil}
+		| comment any_newline {nil}
+		| any_newline {nil}
+	opt_comment
+		: /* nothing */ {nil}
+		| comment {val[0]}
 	opt_expression_list
 		: /* nothing */ {[]}
 		| expression_list
