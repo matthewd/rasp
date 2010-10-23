@@ -7,6 +7,9 @@ class Syntax::Tokenizer
 	end
 end
 
+class Syntax::Token
+	def downcase; to_s.downcase; end
+end
 class PositionedToken < Syntax::Token
 	attr_accessor :position
 	def initialize data, group, position
