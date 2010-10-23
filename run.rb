@@ -150,7 +150,7 @@ begin
 rescue Rasp::ScriptError => error
 	puts "#{error.location}Microsoft VBScript compilation error: #{error.description}"
 else
-	require 'pp'; pp ast; exit ## XXX
+	#require 'pp'; pp ast; exit ## XXX
 	begin
 		context = Rasp::Context.new(:parent_context => Root)
 		ast.compile context
