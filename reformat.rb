@@ -10,7 +10,7 @@ Rnd Round CLng CInt CDbl CStr CBool oApplication Trim Write ID
 Request Response Server Now Array DatePart WeekDayName Day Month Year Right Left Mid Replace IsNumeric IsNull IsEmpty
 Null Nothing Empty Err TypeName FormatNumber Abs LBound UBound Split
 )
-#			elsif builtin = scan( /(IsArray|LBound|UBound|Abs|Asc|AscB|AscW|Chr|ChrB|ChrW|CBool|CByte|CDate|CDbl|CInt|CLng|CSng|CStr|DateSerial|DateValue|Hex|Oct|Fix|Int|Sgn|TimeSerial|TimeValue|Date|Time|Day|Month|Weekday|Year|Hour|Minute|Second|Now|Atn|Cos|Sin|Tan|Exp|Log|Sqr|Rnd|CreateObject|IsObject|InStr|InStrB|Len|LenB|LCase|UCase|Left|LeftB|Mid|MidB|Right|RightB|Space|StrComp|String|LTrim|RTrim|Trim|IsDate|IsEmpty|IsNull|IsNumeric|VarType)(?= *\()/i )
+#      elsif builtin = scan( /(IsArray|LBound|UBound|Abs|Asc|AscB|AscW|Chr|ChrB|ChrW|CBool|CByte|CDate|CDbl|CInt|CLng|CSng|CStr|DateSerial|DateValue|Hex|Oct|Fix|Int|Sgn|TimeSerial|TimeValue|Date|Time|Day|Month|Weekday|Year|Hour|Minute|Second|Now|Atn|Cos|Sin|Tan|Exp|Log|Sqr|Rnd|CreateObject|IsObject|InStr|InStrB|Len|LenB|LCase|UCase|Left|LeftB|Mid|MidB|Right|RightB|Space|StrComp|String|LTrim|RTrim|Trim|IsDate|IsEmpty|IsNull|IsNumeric|VarType)(?= *\()/i )
 
 $Rename = { }
 
