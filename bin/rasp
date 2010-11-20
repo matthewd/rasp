@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+$: << "/home/matthew/src/citrus/lib"
+
+$: << File.join(File.dirname(File.dirname(__FILE__)), "lib")
+
+require 'rasp'
+
+filename = 't/math.vbs'
+parse = Rasp::Parser.parse(File.read(filename), :consume => true)
+#puts parse.dump
+
+parse.value.graph
+#p parse.value
+
+$DEBUG = true
+p Rasp::Compiler.new.compile(parse.value, filename)
+

@@ -11,11 +11,22 @@ end
 class SetAssignment < Assignment
 end
 class ConstAssignment < Assignment
+  def bytecode(g)
+    if g.constants.key? @var
+      raise "Duplicate constant: #@var"
+    end
+
+    # @value is syntactically guaranteed to be a Literal.
+    g.constants[@var] = @value.value
+  end
 end
 class Declaration < Statement
-  attr_accessor :var
-  def initialize(var)
-    @name = var
+  attr_accessor :vars
+  def initialize(vars)
+    @vars = vars
+  end
+  def bytecode(g)
+    # Compiler directive
   end
 end
 class ErrorControl < Statement
@@ -31,6 +42,9 @@ class ExitStatement < Statement
   end
 end
 class OptionExplicit < Statement
+  def bytecode(g)
+    # Compile option only
+  end
 end
 class Randomize < Statement
   attr_accessor :seed

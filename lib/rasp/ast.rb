@@ -1,7 +1,29 @@
-
 module Rasp; module AST
 FalseInt = 0
 TrueInt = ~FalseInt
+
+def self.math_op(match, op=nil)
+  binary_op(AST::MathOp, match.lhs, match.list, op ? [op] : :op)
+end
+
+def self.binary_op(klass, lhs, ary, op_attr=nil, attr=:rhs)
+  lhs = lhs.value
+  ary = ary.matches
+  until ary.empty?
+    curr = ary.shift
+    rhs = curr.send(attr).value
+    if Symbol === op_attr
+      op = curr.send(op_attr).to_sym
+      lhs = klass.new(op, lhs, rhs)
+    elsif op_attr
+      op = op_attr.first
+      lhs = klass.new(op, lhs, rhs)
+    else
+      lhs = klass.new(lhs, rhs)
+    end
+  end
+  lhs
+end
 
 class Node
   def graph
@@ -21,4 +43,9 @@ class Container < Node
 end
 end; end
 
+require 'rasp/ast/block'
+require 'rasp/ast/call'
+require 'rasp/ast/expression'
+require 'rasp/ast/flow'
+require 'rasp/ast/simple'
 require 'rasp/ast/value'

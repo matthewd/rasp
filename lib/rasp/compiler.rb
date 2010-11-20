@@ -4,6 +4,19 @@ module Rasp
   end
 
   class Compiler
+    module LocalVariables
+      include Rubinius::Compiler::LocalVariables
+
+      def new_local(name)
+        variable = Rubinius::Compiler::LocalVariable.new allocate_slot
+        variables[name] = variable
+      end
+
+      def variable(name)
+        variables[name] || new_local(name)
+      end
+    end
+
     attr_reader :g
 
     def initialize
@@ -22,7 +35,7 @@ module Rasp
       g.local_count = 0
       g.local_names = []
 
-      ast.bytecode self
+      ast.bytecode g
       g.ret
       g.close
 
@@ -39,6 +52,12 @@ module Rasp
   end
 
   class Generator < Rubinius::Generator
+    attr_accessor :constants
+    def initialize
+      super
+      @constants = {}
+    end
+
     def giz(label)
       dup_top
       gif label
