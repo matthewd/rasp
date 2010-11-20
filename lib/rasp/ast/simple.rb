@@ -37,7 +37,9 @@ class Declaration < Statement
     @vars = vars
   end
   def bytecode(g)
-    # Compiler directive
+    vars.each do |var|
+      g.state.scope.variable(var)
+    end
   end
 end
 class ErrorControl < Statement

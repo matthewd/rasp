@@ -59,61 +59,53 @@ class ForLoop < Loop
     @var, @start, @finish, @step = var, start, finish, step
   end
   def bytecode(g)
-    # FIXME
     if g.state.scope.variables.key? var
       loop_var = g.state.scope.variable(var).reference
     else
       loop_var = g.state.scope.global.variable(var).reference
     end
 
-    finish_var = Rubinius::Compiler::LocalVariable.new(g.state.scope.allocate_slot).reference
     @finish.bytecode(g)
-    finish_var.set_bytecode(g)
-
-    unless Rasp::AST::Literal === @step || @step.nil?
-      step_var = Rubinius::Compiler::LocalVariable.new(g.state.scope.allocate_slot).reference
-      dir_var = Rubinius::Compiler::LocalVariable.new(g.state.scope.allocate_slot).reference
-
+    if @step
       @step.bytecode(g) if @step
-      g.dup
-      step_var.set_bytecode(g)
-      g.meta_push_0
-      g.send_stack :<, 1
-      dir_var.set_bytecode(g)
+      unless Rasp::AST::Literal === @step
+        g.dup
+        g.meta_push_0
+        g.send :<, 1
+      end
     end
 
     @start.bytecode(g)
     loop_var.set_bytecode(g)
+    g.pop
 
     loop_body = g.new_label
     loop_body.set!
 
     @body.each do |s|
-      #s.bytecode(g)
+      s.bytecode(g)
     end
 
     if Rasp::AST::Literal === @step || @step.nil?
       # Step is constant
 
       if @step
-        @step.bytecode(g)
+        g.dup_many 2 # @step, @finish, ...
         loop_var.get_bytecode(g)
-        g.send_stack :+, 1
+        g.send :+, 1
       else
+        g.dup # @finish, ...
         loop_var.get_bytecode(g)
         g.send_vcall :inc
       end
-      g.dup
       loop_var.set_bytecode(g)
-      finish_var.get_bytecode(g)
-      g.swap
 
       if @step.nil? || @step.value > 0
         # Always working forwards
-        g.send_stack :>, 1
+        g.send :>, 1
       elsif @step.value < 0
         # Always working backwards
-        g.send_stack :<, 1
+        g.send :<, 1
       else
         # Constant step of zero?! Twit.
         raise "For loop cannot have a zero step"
@@ -121,9 +113,12 @@ class ForLoop < Loop
 
       g.gif loop_body
 
-      # finish_var is done now; can we get rid of it?
+      if @step
+        g.pop_many 2
+      else
+        g.pop
+      end
     else
-      raise "dynstep!"
       # Dynamic step; have to work out which way we're going at runtime
       # Experimentation shows this isn't as scary as it seems; the
       # reference implementation only evaluates the Step value once, as
@@ -137,25 +132,22 @@ class ForLoop < Loop
       check_backwards = g.new_label
       end_loop = g.new_label
 
-      finish_var.get_bytecode(g)
-      step_var.get_bytecode(g)
+      g.dup_many 3 # loop_backwards, @step, @finish, ...
       loop_var.get_bytecode(g)
-      g.send_stack :+, 1
-      g.dup
+      g.send :+, 1
       loop_var.set_bytecode(g)
 
-      dir_var.get_bytecode(g)
       g.git check_backwards
-
-      g.send_stack :>, 1
+      g.send :>, 1
       g.gif loop_body
       g.goto end_loop
 
       check_backwards.set!
-      g.send_stack :<, 1
+      g.send :<, 1
       g.gif loop_body
 
       end_loop.set!
+      g.pop_many 3
     end
   end
 end

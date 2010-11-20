@@ -77,7 +77,7 @@ grammar Rasp::Parser
   end
   rule for_next
     (`for` SP identifier SP? "=" SP? start:expression SP `to` SP finish:expression (SP `step` SP step:expression)? ENDSTATEMENT body:(statement*) `next` ENDSTATEMENT)
-    { Rasp::AST::ForLoop.new(identifier.value, start.value, finish.value, first(:step) && first(:step).value, body.matches.map {|m| m.value }) }
+    { Rasp::AST::ForLoop.new(identifier.value, start.value, finish.value, first(:step) && first(:step).value, body.matches.map {|m| m.value }.compact) }
   end
   rule single_line_if
     (`if` SP expression SP `then` SP truepart:(single:single_line_if { [single] } | list:simple_statement_chain) (SP `else` SP falsepart:(single:single_line_if | list:simple_statement_chain EOL) | EOL) )
