@@ -25,17 +25,17 @@ class EqvOp < BinaryOp
 end
 class XorOp < BinaryOp
   def op_bytecode(g)
-    g.send :^
+    g.send :^, 1
   end
 end
 class OrOp < BinaryOp
   def op_bytecode(g)
-    g.send :|
+    g.send :|, 1
   end
 end
 class AndOp < BinaryOp
   def op_bytecode(g)
-    g.send :&
+    g.send :&, 1
   end
 end
 class NotOp < UnaryOp
@@ -47,7 +47,7 @@ class Comparison < BinaryOp
     @operator = operator
   end
   def op_bytecode(g)
-    g.send @operator.to_sym
+    g.send @operator.to_sym, 1
   end
 end
 class StringAppend < BinaryOp
@@ -63,7 +63,7 @@ class MathOp < BinaryOp
     @operator = operator
   end
   def op_bytecode(g)
-    g.send @operator.to_sym
+    g.send @operator.to_sym, 1
   end
 end
 class UnaryPlus < UnaryOp

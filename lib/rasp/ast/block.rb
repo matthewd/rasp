@@ -11,7 +11,6 @@ class File < Node
   def bytecode(g)
     g.push_state self
     statements.each do |s|
-      p s
       s.bytecode(g)
     end
     g.pop_state

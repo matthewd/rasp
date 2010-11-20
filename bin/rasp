@@ -6,7 +6,7 @@ $: << File.join(File.dirname(File.dirname(__FILE__)), "lib")
 
 require 'rasp'
 
-filename = 't/math.vbs'
+filename = ARGV.shift || 't/math.vbs'
 parse = Rasp::Parser.parse(File.read(filename), :consume => true)
 #puts parse.dump
 

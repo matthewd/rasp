@@ -3,9 +3,20 @@ module Rasp::AST
 class Statement < Node
 end
 class Assignment < Statement
-  attr_accessor :var, :value
-  def initialize(var, value)
-    @var, @value = var, value
+  attr_accessor :var, :newval
+  def initialize(var, newval)
+    @var, @newval = var, newval
+  end
+  def bytecode(g)
+    if g.state.scope.variables.key? var
+      ref = g.state.scope.variable(var).reference
+    else
+      ref = g.state.scope.global.variable(var).reference
+    end
+
+    @newval.bytecode(g)
+    ref.set_bytecode(g)
+    g.pop
   end
 end
 class SetAssignment < Assignment
@@ -16,8 +27,8 @@ class ConstAssignment < Assignment
       raise "Duplicate constant: #@var"
     end
 
-    # @value is syntactically guaranteed to be a Literal.
-    g.constants[@var] = @value.value
+    # @newval is syntactically guaranteed to be a Literal.
+    g.constants[@var] = @newval.value
   end
 end
 class Declaration < Statement

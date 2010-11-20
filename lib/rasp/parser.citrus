@@ -69,7 +69,7 @@ grammar Rasp::Parser
     `for` SP `each` SP identifier SP `in` SP expression ENDSTATEMENT statement* `next` ENDSTATEMENT
   end
   rule do_loop
-    (`do` ENDSTATEMENT statement* `loop` ENDSTATEMENT
+    ((`do` ENDSTATEMENT body:statement* `loop` ENDSTATEMENT) { Rasp::AST::Loop.new :do, body.matches.map {|m| m.value }.compact }
     |`do` SP (`while` | `until`) SP expression ENDSTATEMENT statement* `loop` ENDSTATEMENT
     |`do` ENDSTATEMENT statement* `loop` SP (`while` | `until`) SP expression ENDSTATEMENT
     |`while` SP expression ENDSTATEMENT statement* `wend` ENDSTATEMENT
@@ -80,7 +80,11 @@ grammar Rasp::Parser
     { Rasp::AST::ForLoop.new(identifier.value, start.value, finish.value, first(:step) && first(:step).value, body.matches.map {|m| m.value }) }
   end
   rule single_line_if
-    `if` SP expression SP `then` SP (single_line_if | simple_statement_chain (SP `else` SP (single_line_if | simple_statement_chain EOL) | EOL) )
+    (`if` SP expression SP `then` SP truepart:(single:single_line_if { [single] } | list:simple_statement_chain) (SP `else` SP falsepart:(single:single_line_if | list:simple_statement_chain EOL) | EOL) )
+    {
+      false_list = first(:falsepart) && (falsepart.first(:single) ? [falsepart.single.value] : falsepart.list.value)
+      Rasp::AST::If.new(expression.value, truepart.value, false_list)
+    }
   end
   rule full_if_block
     `if` SP expression SP `then` ENDSTATEMENT statement*
@@ -89,7 +93,7 @@ grammar Rasp::Parser
     `end` SP `if` ENDSTATEMENT
   end
   rule simple_statement_chain
-    (simple_statement SP? ":" SP?)* simple_statement
+    ((simple_statement SP? ":" SP?)* simple_statement) { find(:simple_statement).map {|s| s.value } }
   end
   rule simple_statement
     (assignment
@@ -108,10 +112,10 @@ grammar Rasp::Parser
     | (`on` SP `error` SP `goto` SP "0") { Rasp::AST::ErrorControl.new(false) }
   end
   rule exit_statement
-    (`exit` SP type:(`sub` | `function` | `property` | `do` | `for`)) { Rasp::AST::ExitStatement.new type.downcase.to_sym }
+    (`exit` SP extype:(`sub` | `function` | `property` | `do` | `for`)) { Rasp::AST::ExitStatement.new extype.downcase.to_sym }
   end
   rule assignment
-    (objvalue SP? "=" SP? expression
+    ((objvalue SP? "=" SP? expression) { Rasp::AST::Assignment.new(objvalue.value.name, expression.value) }
     |`set` SP objvalue SP? "=" SP? expression
     )
   end
@@ -266,7 +270,7 @@ grammar Rasp::Parser
     /[+-]?[0-9]+/ { Rasp::AST::Integer.new to_i }
   end
   rule float
-    /[0-9]+.[0-9]+/ { Rasp::AST::Float.new to_f }
+    /[0-9]+\.[0-9]+/ { Rasp::AST::Float.new to_f }
   end
   rule string
     /"([^"]|"")*"/ { Rasp::AST::String.new to_s }

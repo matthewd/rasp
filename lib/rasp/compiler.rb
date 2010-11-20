@@ -39,6 +39,9 @@ module Rasp
       g.ret
       g.close
 
+      g.local_count = ast.local_count
+      g.local_names = ast.local_names
+
       g.encode
       cm = g.package ::Rubinius::CompiledMethod
       puts cm.decode if $DEBUG
@@ -59,20 +62,20 @@ module Rasp
     end
 
     def giz(label)
-      dup_top
+      dup
       gif label
 
       meta_push_0
-      meta_send_op_eq find_literal(:==)
+      meta_send_op_equal find_literal(:==)
       git label
     end
     def gnz(label)
       f = new_label
-      dup_top
+      dup
       gif f # if it's false, don't compare to zero; just continue
 
       meta_push_0
-      meta_send_op_eq find_literal(:==)
+      meta_send_op_equal find_literal(:==)
       gif label
 
       f.set!

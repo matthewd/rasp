@@ -10,7 +10,9 @@ class Loop < Node
     top = g.new_label
     top.set!
 
-    @body.bytecode(g)
+    @body.each do |s|
+      s.bytecode(g)
+    end
     g.goto top
   end
 end
@@ -57,24 +59,35 @@ class ForLoop < Loop
     @var, @start, @finish, @step = var, start, finish, step
   end
   def bytecode(g)
-    # TODO
+    # FIXME
     if g.state.scope.variables.key? var
       loop_var = g.state.scope.variable(var).reference
     else
       loop_var = g.state.scope.global.variable(var).reference
     end
+
+    finish_var = Rubinius::Compiler::LocalVariable.new(g.state.scope.allocate_slot).reference
     @finish.bytecode(g)
-    @step.bytecode(g) if @step
+    finish_var.set_bytecode(g)
+
     unless Rasp::AST::Literal === @step || @step.nil?
+      step_var = Rubinius::Compiler::LocalVariable.new(g.state.scope.allocate_slot).reference
+      dir_var = Rubinius::Compiler::LocalVariable.new(g.state.scope.allocate_slot).reference
+
+      @step.bytecode(g) if @step
       g.dup
+      step_var.set_bytecode(g)
       g.meta_push_0
       g.send_stack :<, 1
+      dir_var.set_bytecode(g)
     end
 
     @start.bytecode(g)
     loop_var.set_bytecode(g)
+
     loop_body = g.new_label
     loop_body.set!
+
     @body.each do |s|
       #s.bytecode(g)
     end
@@ -83,16 +96,17 @@ class ForLoop < Loop
       # Step is constant
 
       if @step
-        g.dup_many 2 # @step, @finish, ...
+        @step.bytecode(g)
         loop_var.get_bytecode(g)
         g.send_stack :+, 1
       else
-        g.dup # @finish, ...
         loop_var.get_bytecode(g)
         g.send_vcall :inc
       end
       g.dup
       loop_var.set_bytecode(g)
+      finish_var.get_bytecode(g)
+      g.swap
 
       if @step.nil? || @step.value > 0
         # Always working forwards
@@ -107,11 +121,7 @@ class ForLoop < Loop
 
       g.gif loop_body
 
-      if @step
-        g.pop_many 2
-      else
-        g.pop
-      end
+      # finish_var is done now; can we get rid of it?
     else
       raise "dynstep!"
       # Dynamic step; have to work out which way we're going at runtime
@@ -127,13 +137,16 @@ class ForLoop < Loop
       check_backwards = g.new_label
       end_loop = g.new_label
 
-      g.dup_many 3 # loop_backwards, @step, @finish, ...
+      finish_var.get_bytecode(g)
+      step_var.get_bytecode(g)
       loop_var.get_bytecode(g)
       g.send_stack :+, 1
       g.dup
       loop_var.set_bytecode(g)
 
+      dir_var.get_bytecode(g)
       g.git check_backwards
+
       g.send_stack :>, 1
       g.gif loop_body
       g.goto end_loop
@@ -143,7 +156,6 @@ class ForLoop < Loop
       g.gif loop_body
 
       end_loop.set!
-      g.pop_many 3
     end
   end
 end
@@ -165,19 +177,28 @@ class If < Node
   end
 
   def bytecode(g)
-    done = g.new_label
     false_label = g.new_label
 
     @condition.bytecode(g)
     g.giz false_label
 
-    @true_body.bytecode(g)
-    g.goto done
+    @true_body.each do |s|
+      s.bytecode(g)
+    end
 
-    false_label.set!
-    @false_body.bytecode(g)
+    if @false_body && @false_body.size > 0
+      done = g.new_label
+      g.goto done
 
-    done.set!
+      false_label.set!
+      @false_body.each do |s|
+        s.bytecode(g)
+      end
+
+      done.set!
+    else
+      false_label.set!
+    end
   end
 end
 

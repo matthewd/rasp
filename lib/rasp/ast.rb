@@ -8,7 +8,7 @@ end
 
 def self.binary_op(klass, lhs, ary, op_attr=nil, attr=:rhs)
   lhs = lhs.value
-  ary = ary.matches
+  ary = ary.matches.dup
   until ary.empty?
     curr = ary.shift
     rhs = curr.send(attr).value
