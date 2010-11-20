@@ -52,8 +52,6 @@ grammar VBScript
     |for_each
     |select_block
     |with_block
-    |`option` SP `explicit`
-    |`randomize` (SP expression)?
     |simple_statement ENDSTATEMENT
     |EOL
     )
@@ -99,6 +97,8 @@ grammar VBScript
     |on_error_statement
     |const_assignment
     |`call` SP identifier ("(" SP? (expression_list SP?)? ")")?
+    |`option` SP `explicit`
+    |`randomize` (SP expression)?
     |objvalue (SP expression_list)?
     )
   end
@@ -210,7 +210,7 @@ grammar VBScript
   end
   rule value_expr
     (literal
-    |`new` SP identifier
+    |`new` SP identifier ("." identifier)*
     |"(" SP? expression SP? ")"
     |objvalue
     )
