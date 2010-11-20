@@ -1,0 +1,256 @@
+
+grammar VBScript
+  rule vbscript
+    (statement
+    |class_def
+    |sub_def
+    |function_def
+    )*
+  end
+  rule class_def
+    `class` identifier ENDSTATEMENT
+    class_body_item*
+    `end` `class` ENDSTATEMENT
+  end
+  rule scope
+    `public` | `private`
+  end
+  rule class_body_item
+    ((scope SP)? ident_def ENDSTATEMENT
+    |(scope SP)? sub_def
+    |(scope SP)? function_def
+    |(scope SP)? property_def
+    |EOL
+    )
+  end
+  rule property_def
+    `property` SP (`get` | `let` | `set`) SP identifier SP? arg_def_list? ENDSTATEMENT
+    statement*
+    `end` SP `property` ENDSTATEMENT
+  end
+  rule sub_def
+    `sub` SP identifier SP? arg_def_list? ENDSTATEMENT
+    statement*
+    `end` SP `function` ENDSTATEMENT
+  end
+  rule function_def
+    `function` SP identifier SP? arg_def_list? ENDSTATEMENT
+    statement*
+    `end` SP `function` ENDSTATEMENT
+  end
+  rule arg_def_list
+    "(" SP? ( (arg_def SP? "," SP?)* arg_def SP? )? ")"
+  end
+  rule arg_def
+    (`byref` SP | `byval` SP)? identifier
+  end
+  rule statement
+    (full_if_block
+    |single_line_if
+    |do_loop
+    |for_next
+    |for_each
+    |select_block
+    |with_block
+    |`option` SP `explicit`
+    |`randomize` (SP expression)?
+    |simple_statement ENDSTATEMENT
+    |EOL
+    )
+  end
+  rule with_block
+    `with` SP expression ENDSTATEMENT statement* `end` SP `with` ENDSTATEMENT
+  end
+  rule select_block
+    `select` SP `case` SP expression ENDSTATEMENT
+    (`case` SP expression_list ENDSTATEMENT statement*)+
+    (`case` SP `else` statement*)?
+    `end` SP `select` ENDSTATEMENT
+  end
+  rule for_each
+    `for` SP `each` SP identifier SP `in` SP expression ENDSTATEMENT statement* `next` ENDSTATEMENT
+  end
+  rule do_loop
+    (`do` ENDSTATEMENT statement* `loop` ENDSTATEMENT
+    |`do` SP (`while` | `until`) SP expression ENDSTATEMENT statement* `loop` ENDSTATEMENT
+    |`do` ENDSTATEMENT statement* `loop` SP (`while` | `until`) SP expression ENDSTATEMENT
+    |`while` SP expression ENDSTATEMENT statement* `wend` ENDSTATEMENT
+    )
+  end
+  rule for_next
+    `for` SP identifier SP? "=" SP? expression SP `to` SP expression (SP `step` SP expression)? ENDSTATEMENT statement* `next` ENDSTATEMENT
+  end
+  rule single_line_if
+    `if` SP expression SP `then` SP (single_line_if | simple_statement_chain (SP `else` SP (single_line_if | simple_statement_chain EOL) | EOL) )
+  end
+  rule full_if_block
+    `if` SP expression SP `then` ENDSTATEMENT statement*
+    (`elseif` SP expression SP `then` ENDSTATEMENT statement*)*
+    (`else` ENDSTATEMENT statement*)?
+    `end` SP `if` ENDSTATEMENT
+  end
+  rule simple_statement_chain
+    (simple_statement SP? ":" SP?)* simple_statement
+  end
+  rule simple_statement
+    (assignment
+    |`dim` SP identifier (SP? "," SP? identifier)*
+    |exit_statement
+    |on_error_statement
+    |const_assignment
+    |`call` SP identifier ("(" SP? (expression_list SP?)? ")")?
+    |objvalue (SP expression_list)?
+    )
+  end
+  rule on_error_statement
+    `on` SP `error` SP `resume` SP `next` | `on` SP `error` SP `goto` SP "0"
+  end
+  rule exit_statement
+    `exit` SP (`sub` | `function` | `property` | `do` | `for`)
+  end
+  rule assignment
+    (objvalue SP? "=" SP? expression
+    |`set` SP objvalue SP? "=" SP? expression
+    )
+  end
+  rule const_assignment
+    `const` SP identifier SP? "=" SP? literal
+  end
+  rule objvalue
+    (identifier | "." identifier) ("(" SP? (expression_list SP?)? ")" | "." objmember)*
+  end
+  rule identifier
+    !reserved /[A-Za-z_][A-Za-z0-9_]*/ | /\[[^\]]*\]/
+  end
+  rule reserved
+    active_reserved | other_reserved
+  end
+  rule active_reserved
+    # Reserved words that are used by the language, either to avoid
+    # ambiguity, as a convenience in the reference parser. Either way,
+    # we must reject them in order to be fully conforming.
+
+    `select` | `case` | `do` | `while` | `until` | `loop` | `end` | `wend`
+    | `if` | `then` | `elseif` | `else` | `byval` | `byref`
+    | `with` | `for` | `each` | `next` | `public` | `private`
+    | `class` | `function` | `sub` | `property` | `get` | `set` | `let`
+    | `imp` | `eqv` | `xor` | `or` | `and` | `not` | `is` | `mod`
+    | `new` | `const` | `dim` | `call` | `exit` | `option` | `randomize`
+
+    # Things you might think are reserved words, but actually aren't:
+    # `in`, `to`, `step`
+  end
+  rule other_reserved
+    # Reserved by spec, though unused in the language. Most likely, a
+    # reserved word in VB proper.
+    `typeof`
+    | `redim` | `preserve`
+    | `erase`
+  end
+  rule objmember
+    identifier
+  end
+  rule expression
+    eqv_expr (SP `imp` SP eqv_expr)*
+  end
+  rule eqv_expr
+    xor_expr (SP `eqv` SP xor_expr)*
+  end
+  rule xor_expr
+    or_expr (SP `xor` SP or_expr)*
+  end
+  rule or_expr
+    and_expr (SP `or` SP and_expr)*
+  end
+  rule and_expr
+    not_expr (SP `and` SP not_expr)*
+  end
+  rule not_expr
+    `not` SP cmp_expr | cmp_expr
+  end
+  rule cmp_expr
+    amp_expr (SP? "="  SP? amp_expr
+             |SP? "<>" SP? amp_expr
+             |SP? "<=" SP? amp_expr
+             |SP? ">=" SP? amp_expr
+             |SP? "<"  SP? amp_expr
+             |SP? ">"  SP? amp_expr
+             |SP  `is` SP  amp_expr
+             )*
+  end
+  rule amp_expr
+    add_expr (SP? "&" SP? add_expr)*
+  end
+  rule add_expr
+    mod_expr (SP? "+" SP? mod_expr
+             |SP? "-" SP? mod_expr
+             )*
+  end
+  rule mod_expr
+    idiv_expr (SP `mod` SP idiv_expr)*
+  end
+  rule idiv_expr
+    mul_expr (SP? "\\" SP? mul_expr)*
+  end
+  rule mul_expr
+    exp_expr (SP? "*" SP? exp_expr
+             |SP? "/" SP? exp_expr
+             )*
+  end
+  rule exp_expr
+    # Online references conflict on this point, but a manual test shows
+    # that unary minus binds more tightly than '^'
+    unary_expr (SP? "^" SP? unary_expr)*
+  end
+  rule unary_expr
+    ("+" SP? value_expr
+    |"-" SP? value_expr
+    |value_expr
+    )
+  end
+  rule value_expr
+    (literal
+    |`new` SP identifier
+    |"(" SP? expression SP? ")"
+    |objvalue
+    )
+  end
+
+  rule literal
+    (float
+    |integer
+    |string
+    |`true`
+    |`false`
+    )
+  end
+
+  rule integer
+    /[+-]?[0-9]+/
+  end
+  rule float
+    /[0-9]+.[0-9]+/
+  end
+  rule string
+    /"([^"]|"")*"/
+  end
+
+  rule ENDSTATEMENT
+    /[ \t]*(?::|(?:'[^\n]+)?\n)[ \t]*/
+  end
+  rule expression_list
+    (expression SP? "," SP?)* expression
+  end
+
+
+  rule EOL
+    /[ \t]*(?:(?:'[^\n]+)?\n[ \t]*)+/
+  end
+  rule comment
+    /'[^\n]+/
+  end
+  rule SP
+    /[ \t]+/
+  end
+end
+
