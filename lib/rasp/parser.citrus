@@ -204,6 +204,7 @@ grammar Rasp::Parser
     | `class` | `function` | `sub` | `property` | `get` | `set` | `let`
     | `imp` | `eqv` | `xor` | `or` | `and` | `not` | `is` | `mod`
     | `new` | `const` | `dim` | `call` | `exit` | `option` | `randomize`
+    | `redim` | `preserve` | `erase`
 
     # Things you might think are reserved words, but actually aren't:
     # `in`, `to`, `step`
@@ -212,8 +213,6 @@ grammar Rasp::Parser
     # Reserved by spec, though unused in the language. Most likely, a
     # reserved word in VB proper.
     `typeof`
-    | `redim` | `preserve`
-    | `erase`
   end
   rule expression
     (lhs:eqv_expr list:(SP op:`imp` SP rhs:eqv_expr
