@@ -42,4 +42,20 @@ class File < Node
   end
 end
 
+class LocalScope < Node
+end
+
+class FunctionDef < LocalScope
+  def initialize(name, args, body)
+    @name, @args, @body = name, args, body
+  end
+  def bytecode(g)
+  end
+  def prescan(g)
+    @body.each do |s|
+      s.prescan(g)
+    end
+  end
+end
+
 end

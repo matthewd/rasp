@@ -34,9 +34,12 @@ grammar Rasp::Parser
     `end` SP `function` ENDSTATEMENT
   end
   rule function_def
-    `function` SP identifier SP? arg_def_list? ENDSTATEMENT
-    statement*
-    `end` SP `function` ENDSTATEMENT
+    (`function` SP identifier SP? arg_def_list? ENDSTATEMENT
+    body:statement*
+    `end` SP `function` ENDSTATEMENT)
+    {
+      Rasp::AST::FunctionDef.new(identifier.value, first(:arg_def_list) && first(:arg_def_list).value, body.matches.map {|m| m.value }.compact)
+    }
   end
   rule arg_def_list
     ("(" SP? ( list:(arg_def SP? "," SP?)* arg_def SP? )? ")") { list.map {|l| l.arg_def.value } + [arg_def.value] }
@@ -87,10 +90,35 @@ grammar Rasp::Parser
     }
   end
   rule full_if_block
-    `if` SP expression SP `then` ENDSTATEMENT statement*
-    (`elseif` SP expression SP `then` ENDSTATEMENT statement*)*
-    (`else` ENDSTATEMENT statement*)?
-    `end` SP `if` ENDSTATEMENT
+    (
+      orig:(
+        (`if` SP expression SP `then` ENDSTATEMENT body:statement*)
+        { Rasp::AST::If.new(expression.value, body.matches.map {|m| m.value }.compact, nil) }
+      )
+      mids:(
+        (`elseif` SP expression SP `then` ENDSTATEMENT body:statement*) 
+        { Rasp::AST::If.new(expression.value, body.matches.map {|m| m.value }.compact, nil) }
+      )*
+      elsechunk:(
+        (`else` ENDSTATEMENT elsebody:statement*)?
+        { elsebody.matches.map {|m| m.value }.compact }
+      )
+      `end` SP `if` ENDSTATEMENT
+    ) {
+      e = elsechunk.matches.first
+      e &&= e.elsebody.matches.map {|m| m.value }.compact
+      p e
+      ls = mids.matches.map {|m| m.value }
+      p ls
+      while x = ls.pop
+        x.false_body = e
+        e = [x]
+      end
+      v = orig.value
+      v.false_body = e
+      p v
+      v
+    }
   end
   rule simple_statement_chain
     (list:(lhs:simple_statement SP? ":" SP?)* rhs:simple_statement) { (first(:list) ? list.map {|x| x.lhs.value } : []) + [rhs.value] }
@@ -151,7 +179,7 @@ grammar Rasp::Parser
     (init:((local:identifier | "." withprop:identifier) ("(" SP? (expression_list SP?)? ")")?)
       { Rasp::AST::GetCall.new(first(:withprop) ? Rasp::AST::WithRef.new : nil,
                           (first(:local) || first(:withprop)).value,
-                          first(:expression_list) && first(:expression_list).value) }
+                          find(:expression_list).first && find(:expression_list).first.value) }
     list:("." identifier ("(" SP? (expression_list SP?)? ")")?)*)
     {
       list.matches.inject(init.value) do |full, x|

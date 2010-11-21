@@ -33,23 +33,31 @@ class GetCall < Call
         @args.each do |a|
           a.bytecode(g)
         end
-        g.send name, @args.size
+        g.send @name, @args.size
       else
         @target.bytecode(g)
-        g.send name, 0
+        g.send @name, 0
       end
     else
-      if g.constants.key?(@name)
-        raise "Can't call constant with args" if @args && !@args.empty?
-        g.push_literal g.constants[@name]
-        return
-      end
+      if @args.nil? || @args.empty?
+        if g.constants.key?(@name)
+          g.push_literal g.constants[@name]
+          return
+        end
 
-      ref = g.state.scope.lookup_variable(g, name)
-      if ref
-        raise "Can't call variable with args" if @args && !@args.empty?
-        ref.get_bytecode(g)
-        return
+        ref = g.state.scope.lookup_variable(g, @name)
+        if ref
+          ref.get_bytecode(g)
+          return
+        end
+
+        g.meta_push_0
+      else
+        g.push_self
+        @args.each do |a|
+          a.bytecode(g)
+        end
+        g.send @name, @args.size
       end
     end
   end
@@ -61,16 +69,16 @@ class NullCall < GetCall
   end
 end
 class LetCall < Node
-  attr_accessor :value
+  attr_accessor :target, :name, :args, :value
   def initialize(target, name, args, value)
-    super target, name, args
-    @value = value
+    @target, @name, @args, @value = target, name, args, value
   end
   def bytecode(g)
     if @target.nil? && (@args.nil? || @args.empty?)
-      ref = g.state.scope.lookup_variable(g, name)
+      ref = g.state.scope.lookup_variable(g, @name)
       @value.bytecode(g)
       ref.set_bytecode(g)
+      g.pop
     else
       raise NotImplementedError, "Deep let/set not supported"
     end
@@ -79,8 +87,10 @@ class LetCall < Node
     new(call.target, call.name, call.args, value)
   end
   def prescan(g)
-    @args.each do |a|
-      a.prescan(g)
+    if @args
+      @args.each do |a|
+        a.prescan(g)
+      end
     end
     @value.prescan(g)
   end

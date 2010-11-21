@@ -63,23 +63,37 @@ module Rasp
     end
 
     def giz(label)
+      a, b = new_label, new_label
+
       dup
-      gif label
+      gif a
 
       meta_push_0
       meta_send_op_equal find_literal(:==)
       git label
+      goto b
+
+      a.set!
+      pop
+      goto label
+
+      b.set!
     end
     def gnz(label)
-      f = new_label
+      a, b = new_label, new_label
+
       dup
-      gif f # if it's false, don't compare to zero; just continue
+      gif a
 
       meta_push_0
       meta_send_op_equal find_literal(:==)
       gif label
+      goto b
 
-      f.set!
+      a.set!
+      pop
+
+      b.set!
     end
   end
 end
