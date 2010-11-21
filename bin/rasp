@@ -6,15 +6,19 @@ $: << File.join(File.dirname(File.dirname(__FILE__)), "lib")
 
 require 'rasp'
 
-filename = ARGV.shift || 't/math.vbs'
+filename = File.exist?(ARGV.first) ? ARGV.shift : 't/math.vbs'
 parse = Rasp::Parser.parse(File.read(filename), :consume => true)
 #puts parse.dump
 
-parse.value.graph
+parse.value.graph if ARGV.grep /^--graph$/
 #p parse.value
 
-$DEBUG = true
-compiled = Rasp::Compiler.new.compile(parse.value, filename)
+old_debug, $DEBUG = $DEBUG, ARGV.grep(/^--decode$/)
+begin
+  compiled = Rasp::Compiler.new.compile(parse.value, filename)
+ensure
+  $DEBUG = old_debug
+end
 
-#compiled.call
+compiled.call if ARGV.grep /^--run$/
 

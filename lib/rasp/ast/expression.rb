@@ -6,6 +6,10 @@ class UnaryOp < Node
     @inner = inner
   end
 
+  def bytecode(g)
+    @inner.bytecode(g)
+    op_bytecode g
+  end
   def prescan(g)
     @inner.prescan(g)
   end
@@ -46,6 +50,9 @@ class AndOp < BinaryOp
   end
 end
 class NotOp < UnaryOp
+  def op_bytecode(g)
+    g.send_vcall :~
+  end
 end
 class Comparison < BinaryOp
   attr_accessor :operator
@@ -69,11 +76,10 @@ class StringAppend < BinaryOp
 
     case @lhs
     when Rasp::AST::StringAppend
-      # Already dupped
       @lhs.bytecode(g)
     when Rasp::AST::String
-      # Was a literal
       @lhs.bytecode(g)
+      g.string_dup
     else
       @lhs.bytecode(g)
       g.send_vcall :to_s
@@ -95,12 +101,12 @@ class MathOp < BinaryOp
 end
 class UnaryPlus < UnaryOp
   def op_bytecode(g)
-    g.send_vcall :"@+"
+    g.send_vcall :+@
   end
 end
 class UnaryMinus < UnaryOp
   def op_bytecode(g)
-    g.send_vcall :"@-"
+    g.send_vcall :-@
   end
 end
 
