@@ -25,6 +25,12 @@ def self.binary_op(klass, lhs, ary, op_attr=nil, attr=:rhs)
   lhs
 end
 
+def self.list(lhs, ary, attr=:rhs)
+  [lhs] + ary.matches.map do |curr|
+    curr.send(attr).value
+  end
+end
+
 class Node
   def graph
     Rubinius::AST::AsciiGrapher.new(self, Node).print

@@ -39,7 +39,7 @@ class GetCall < Call
         g.send :"vb:#@name", 0
       end
     else
-      if @args.nil? || @args.empty?
+      if @args.nil?
         if g.constants.key?(@name)
           g.push_literal g.constants[@name]
           return

@@ -69,19 +69,30 @@ grammar Rasp::Parser
     `with` SP expression ENDSTATEMENT statement* `end` SP `with` ENDSTATEMENT
   end
   rule select_block
-    `select` SP `case` SP expression ENDSTATEMENT
-    (`case` SP expression_list ENDSTATEMENT statement*)+
-    (`case` SP `else` statement*)?
-    `end` SP `select` ENDSTATEMENT
+    (
+      init:(`select` SP `case` SP expression ENDSTATEMENT)
+      { expression.value }
+      cases:(
+        (`case` SP expression_list ENDSTATEMENT body:statement*)
+      )+
+      elsepart:(
+        (`case` SP `else` elsebody:statement*)
+        { elsebody.matches.map {|m| m.value }.compact }
+      )?
+      `end` SP `select` ENDSTATEMENT
+    ) {
+      c = cases.matches.map {|m| Rasp::AST::Case.new(m.expression_list.value, m.body.matches.map {|x| x.value }.compact) }
+      Rasp::AST::SelectCase.new(init.value, c, elsepart.matches.first.value)
+    }
   end
   rule for_each
     `for` SP `each` SP identifier SP `in` SP expression ENDSTATEMENT statement* `next` ENDSTATEMENT
   end
   rule do_loop
     ((`do` ENDSTATEMENT body:statement* `loop` ENDSTATEMENT) { Rasp::AST::Loop.new :do, body.matches.map {|m| m.value }.compact }
-    |`do` SP (`while` | `until`) SP expression ENDSTATEMENT statement* `loop` ENDSTATEMENT
-    |`do` ENDSTATEMENT statement* `loop` SP (`while` | `until`) SP expression ENDSTATEMENT
-    |`while` SP expression ENDSTATEMENT statement* `wend` ENDSTATEMENT
+    |(`do` SP flip:(`while` | `until`) SP expression ENDSTATEMENT body:statement* `loop` ENDSTATEMENT) { Rasp::AST::DoWhile.new :do, expression.value, flip == 'until', body.matches.map {|m| m.value }.compact }
+    |(`do` ENDSTATEMENT body:statement* `loop` SP flip:(`while` | `until`) SP expression ENDSTATEMENT) { Rasp::AST::LoopWhile.new :do, expression.value, flip == 'until', body.matches.map {|m| m.value }.compact }
+    |(`while` SP expression ENDSTATEMENT body:statement* `wend` ENDSTATEMENT) { Rasp::AST::DoWhile.new :do, expression.value, false, body.matches.map {|m| m.value }.compact }
     )
   end
   rule for_next
@@ -113,21 +124,19 @@ grammar Rasp::Parser
     ) {
       e = elsechunk.matches.first
       e &&= e.elsebody.matches.map {|m| m.value }.compact
-      p e
       ls = mids.matches.map {|m| m.value }
-      p ls
       while x = ls.pop
         x.false_body = e
         e = [x]
       end
       v = orig.value
       v.false_body = e
-      p v
       v
     }
   end
   rule simple_statement_chain
-    (list:(lhs:simple_statement SP? ":" SP?)* rhs:simple_statement) { (first(:list) ? list.map {|x| x.lhs.value } : []) + [rhs.value] }
+    (lhs:simple_statement list:(SP? "::" SP? rhs:simple_statement
+                               )*) { Rasp::AST.list(lhs, list) }
   end
   rule simple_statement
     (assignment
@@ -182,14 +191,14 @@ grammar Rasp::Parser
       }
   end
   rule objvalue
-    (init:((local:identifier | "." withprop:identifier) ("(" SP? (expression_list SP?)? ")")?)
+    (init:((local:identifier | "." withprop:identifier) (paren:"(" SP? (expression_list SP?)? ")")?)
       { Rasp::AST::GetCall.new(first(:withprop) ? Rasp::AST::WithRef.new : nil,
                           (first(:local) || first(:withprop)).value,
-                          find(:expression_list).first && find(:expression_list).first.value) }
-    list:("." identifier ("(" SP? (expression_list SP?)? ")")?)*)
+                          find(:paren).empty? ? nil : (find(:expression_list).first && find(:expression_list).first.value || [])) }
+    list:("." identifier (paren:"(" SP? (expression_list SP?)? ")")?)*)
     {
       list.matches.inject(init.value) do |full, x|
-        Rasp::AST::GetCall.new(full, x.identifier.value, x.first(:expression_list) && x.first(:expression_list).value)
+        Rasp::AST::GetCall.new(full, x.identifier.value, find(:paren).empty? ? nil : (x.first(:expression_list) && x.first(:expression_list).value || []))
       end
     }
   end
@@ -282,8 +291,8 @@ grammar Rasp::Parser
                          )*) { Rasp::AST.math_op(self) }
   end
   rule unary_expr
-    ("+" SP? value_expr { Rasp::AST::UnaryPlus.new value_expr }
-    |"-" SP? value_expr { Rasp::AST::UnaryMinus.new value_expr }
+    (("+" SP? value_expr) { Rasp::AST::UnaryPlus.new(value_expr.value) }
+    |("-" SP? value_expr) { Rasp::AST::UnaryMinus.new(value_expr.value) }
     |value_expr
     )
   end
@@ -318,7 +327,8 @@ grammar Rasp::Parser
     /[ \t]*(?::|(?:'[^\n]+)?\n)[ \t]*/ { nil }
   end
   rule expression_list
-    (list:(lhs:expression SP? "," SP?)* rhs:expression) { (first(:list) ? list.map {|x| x.lhs.value } : []) + [rhs.value] }
+    (lhs:expression list:(SP? "," SP? rhs:expression
+                         )*) { Rasp::AST.list(lhs, list) }
   end
 
 

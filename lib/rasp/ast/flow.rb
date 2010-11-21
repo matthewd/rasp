@@ -34,7 +34,7 @@ class DoWhile < Loop
 
     @condition.bytecode(g)
     g.meta_push_0
-    g.meta_send_op_eq
+    g.meta_send_op_equal g.find_literal(:==)
     g.giz done
 
     @body.each do |s|
@@ -248,7 +248,7 @@ class SelectCase < Container
   end
 
   def bytecode(g)
-    done = new_label
+    done = g.new_label
     @expr.bytecode(g)
     @cases.each do |c|
       c.bytecode(g, done)
@@ -284,7 +284,7 @@ class Case < Node
     matches.each do |m|
       g.dup
       m.bytecode(g)
-      g.meta_send_op_eq find_literal(:==)
+      g.meta_send_op_equal g.find_literal(:==)
       if m == matches.last
         g.giz failed_match
       else

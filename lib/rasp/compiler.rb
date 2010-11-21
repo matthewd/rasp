@@ -1,6 +1,13 @@
 # Stolen from poison; original code Copyright (c) 2010 Brian Ford.
 module Rasp
   class Code
+    def vb_rnd
+      Kernel.rand
+    end
+
+    instance_methods.each do |m|
+      alias_method m.to_s.sub(/^vb_/, 'vb:').intern, m if m.to_s =~ /^vb_/
+    end
   end
   class Function < Code
     attr_accessor :name
@@ -120,13 +127,9 @@ module Rasp
       gg.local_count = ast.local_count
       gg.local_names = ast.local_names
 
-      p :compile_function
       gg.encode
-      p :compile_function
       cm = gg.package ::Rubinius::CompiledMethod
-      p :compile_function
       puts cm.decode if $DEBUG
-      p :compile_function
 
       code = Rasp::Function.new
       code.name = ast.name
