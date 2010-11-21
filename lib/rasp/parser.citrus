@@ -1,4 +1,8 @@
 
+# Much of this is *really* messy, where I've experimented pretty
+# randomly trying to extract the values I need. Definitely needs some
+# serious cleanup.
+
 grammar Rasp::Parser
   rule vbscript
     (statement
