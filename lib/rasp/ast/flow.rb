@@ -88,6 +88,7 @@ class ForLoop < Loop
       unless Rasp::AST::Literal === @step
         g.dup
         g.meta_push_0
+        g.swap
         g.send :<, 1
       end
     end
@@ -119,16 +120,18 @@ class ForLoop < Loop
 
       if @step.nil? || @step.value > 0
         # Always working forwards
-        g.send :<=, 1
+        g.swap
+        g.send :>, 1
       elsif @step.value < 0
         # Always working backwards
-        g.send :>=, 1
+        g.swap
+        g.send :<, 1
       else
         # Constant step of zero?! Twit.
         raise "For loop cannot have a zero step"
       end
 
-      g.git loop_body
+      g.gif loop_body
 
       if @step
         g.pop_many 2
@@ -155,13 +158,15 @@ class ForLoop < Loop
       loop_var.set_bytecode(g)
 
       g.git check_backwards
-      g.send :<=, 1
-      g.git loop_body
+      g.swap
+      g.send :>, 1
+      g.gif loop_body
       g.goto end_loop
 
       check_backwards.set!
-      g.send :>=, 1
-      g.git loop_body
+      g.swap
+      g.send :<, 1
+      g.gif loop_body
 
       end_loop.set!
       g.pop_many 3
