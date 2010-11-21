@@ -14,5 +14,7 @@ parse.value.graph
 #p parse.value
 
 $DEBUG = true
-p Rasp::Compiler.new.compile(parse.value, filename)
+compiled = Rasp::Compiler.new.compile(parse.value, filename)
+
+compiled.call
 

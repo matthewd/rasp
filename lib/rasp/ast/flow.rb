@@ -15,6 +15,11 @@ class Loop < Node
     end
     g.goto top
   end
+  def prescan(g)
+    @body.each do |s|
+      s.prescan(g)
+    end
+  end
 end
 class DoWhile < Loop
   attr_accessor :condition
@@ -32,10 +37,18 @@ class DoWhile < Loop
     g.meta_send_op_eq
     g.giz done
 
-    @body.bytecode(g)
+    @body.each do |s|
+      s.bytecode(g)
+    end
     g.goto top
 
     done.set!
+  end
+  def prescan(g)
+    @condition.prescan(g)
+    @body.each do |s|
+      s.prescan(g)
+    end
   end
 end
 class LoopWhile < DoWhile
@@ -43,10 +56,18 @@ class LoopWhile < DoWhile
     top = g.new_label
     top.set!
 
-    @body.bytecode(g)
+    @body.each do |s|
+      s.bytecode(g)
+    end
 
     @condition.bytecode(g)
     g.gnz top
+  end
+  def prescan(g)
+    @body.each do |s|
+      s.prescan(g)
+    end
+    @condition.prescan(g)
   end
 end
 class ForLoop < Loop
@@ -59,11 +80,7 @@ class ForLoop < Loop
     @var, @start, @finish, @step = var, start, finish, step
   end
   def bytecode(g)
-    if g.state.scope.variables.key? var
-      loop_var = g.state.scope.variable(var).reference
-    else
-      loop_var = g.state.scope.global.variable(var).reference
-    end
+    loop_var = g.state.scope.lookup_variable(g, var)
 
     @finish.bytecode(g)
     if @step
@@ -71,6 +88,7 @@ class ForLoop < Loop
       unless Rasp::AST::Literal === @step
         g.dup
         g.meta_push_0
+        g.swap
         g.send :<, 1
       end
     end
@@ -92,19 +110,22 @@ class ForLoop < Loop
       if @step
         g.dup_many 2 # @step, @finish, ...
         loop_var.get_bytecode(g)
+        g.swap
         g.send :+, 1
       else
         g.dup # @finish, ...
         loop_var.get_bytecode(g)
-        g.send_vcall :inc
+        g.send_vcall :succ
       end
       loop_var.set_bytecode(g)
 
       if @step.nil? || @step.value > 0
         # Always working forwards
+        g.swap
         g.send :>, 1
       elsif @step.value < 0
         # Always working backwards
+        g.swap
         g.send :<, 1
       else
         # Constant step of zero?! Twit.
@@ -134,20 +155,31 @@ class ForLoop < Loop
 
       g.dup_many 3 # loop_backwards, @step, @finish, ...
       loop_var.get_bytecode(g)
+      g.swap
       g.send :+, 1
       loop_var.set_bytecode(g)
 
       g.git check_backwards
+      g.swap
       g.send :>, 1
       g.gif loop_body
       g.goto end_loop
 
       check_backwards.set!
+      g.swap
       g.send :<, 1
       g.gif loop_body
 
       end_loop.set!
       g.pop_many 3
+    end
+  end
+  def prescan(g)
+    @start.prescan(g)
+    @finish.prescan(g)
+    @step.prescan(g) if @step
+    @body.each do |s|
+      s.prescan(g)
     end
   end
 end
@@ -159,6 +191,12 @@ class ForEachLoop < Loop
   end
   def bytecode(g)
     # TODO
+  end
+  def prescan(g)
+    @collection.prescan(g)
+    @body.each do |s|
+      s.prescan(g)
+    end
   end
 end
 
@@ -192,6 +230,17 @@ class If < Node
       false_label.set!
     end
   end
+  def prescan(g)
+    @condition.prescan(g)
+    @true_body.each do |s|
+      s.prescan(g)
+    end
+    if @false_body
+      @false_body.each do |s|
+        s.prescan(g)
+      end
+    end
+  end
 end
 
 class SelectCase < Container
@@ -206,8 +255,23 @@ class SelectCase < Container
     @cases.each do |c|
       c.bytecode(g, done)
     end
-    @else_body.bytecode(g) if @else_body
+    if @else_body
+      @else_body.each do |s|
+        s.bytecode(g)
+      end
+    end
     done.set!
+  end
+  def prescan(g)
+    @expr.prescan(g)
+    @cases.each do |c|
+      c.prescan(g)
+    end
+    if @else_body
+      @else_body.each do |s|
+        s.prescan(g)
+      end
+    end
   end
 end
 class Case < Node
@@ -231,10 +295,20 @@ class Case < Node
     end
 
     body_label.set! unless matches.size == 1
-    @body.bytecode(g)
+    @body.each do |s|
+      s.bytecode(g)
+    end
     g.goto done
 
     failed_match.set!
+  end
+  def prescan(g)
+    @matches.each do |m|
+      m.prescan(g)
+    end
+    @body.each do |s|
+      s.prescan(g)
+    end
   end
 end
 

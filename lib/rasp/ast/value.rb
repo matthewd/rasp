@@ -8,6 +8,8 @@ class Literal < Node
   def bytecode(g)
     g.push_literal value
   end
+  def prescan(g)
+  end
 end
 class String < Literal
 end

@@ -93,7 +93,7 @@ grammar Rasp::Parser
     `end` SP `if` ENDSTATEMENT
   end
   rule simple_statement_chain
-    ((simple_statement SP? ":" SP?)* simple_statement) { find(:simple_statement).map {|s| s.value } }
+    (list:(lhs:simple_statement SP? ":" SP?)* rhs:simple_statement) { (first(:list) ? list.map {|x| x.lhs.value } : []) + [rhs.value] }
   end
   rule simple_statement
     (assignment
@@ -101,7 +101,6 @@ grammar Rasp::Parser
     |exit_statement
     |on_error_statement
     |const_assignment
-    |`call` SP identifier ("(" SP? (expression_list SP?)? ")")?
     |(`option` SP `explicit`) { Rasp::AST::OptionExplicit.new }
     |`randomize` (SP expression)? { Rasp::AST::Randomize.new expression.value }
     |sub_call
@@ -115,47 +114,53 @@ grammar Rasp::Parser
     (`exit` SP extype:(`sub` | `function` | `property` | `do` | `for`)) { Rasp::AST::ExitStatement.new extype.downcase.to_sym }
   end
   rule assignment
-    ((objvalue SP? "=" SP? expression) { Rasp::AST::Assignment.new(objvalue.value.name, expression.value) }
-    |`set` SP objvalue SP? "=" SP? expression
+    ((objvalue SP? "=" SP? expression) { Rasp::AST::LetCall.from(objvalue.value, expression.value) }
+    |(`set` SP objvalue SP? "=" SP? expression) { Rasp::AST::SetCall.from(objvalue.value, expression.value) }
     )
   end
   rule const_assignment
     (`const` SP identifier SP? "=" SP? literal) { Rasp::AST::ConstAssignment.new(identifier.value, literal.value) }
   end
   rule sub_call
+    # FIXME :/
+    (`call` SP identifier ("(" SP? (expression_list SP?)? ")")?)
+    {
+      Rasp::AST::NullCall.new(nil, identifier.value, first(:expression_list) && first(:expression_list).value)
+    }
+    |
     (
     subref:(init:((local:identifier | "." withprop:identifier) ("(" SP? (expression_list SP?)? ")")?)
-      { Rasp::AST::Call.new(first(:withprop) ? Rasp::AST::WithRef.new : nil,
+      { Rasp::AST::GetCall.new(first(:withprop) ? Rasp::AST::WithRef.new : nil,
                           (first(:local) || first(:withprop)).value,
                           first(:expression_list) && first(:expression_list).value) }
     list:("." identifier ("(" SP? (expression_list SP?)? ")")?)*)
     {
       list.matches.inject(init.value) do |full, x|
-        Rasp::AST::Call.new(full, x.identifier.value, x.first(:expression_list) && x.first(:expression_list).value)
+        Rasp::AST::GetCall.new(full, x.identifier.value, x.first(:expression_list) && x.first(:expression_list).value)
       end
     }
     args:(!")" SP? expression_list)?
     ) {
         v = subref.value
+        raise "Oops!" if v.args
         a = args.matches.first && args.matches.first.first(:expression_list)
-        v.args = a.value if a
-        v
+        Rasp::AST::NullCall.new(v.target, v.name, a ? a.value : nil)
       }
   end
   rule objvalue
     (init:((local:identifier | "." withprop:identifier) ("(" SP? (expression_list SP?)? ")")?)
-      { Rasp::AST::Call.new(first(:withprop) ? Rasp::AST::WithRef.new : nil,
+      { Rasp::AST::GetCall.new(first(:withprop) ? Rasp::AST::WithRef.new : nil,
                           (first(:local) || first(:withprop)).value,
                           first(:expression_list) && first(:expression_list).value) }
     list:("." identifier ("(" SP? (expression_list SP?)? ")")?)*)
     {
       list.matches.inject(init.value) do |full, x|
-        Rasp::AST::Call.new(full, x.identifier.value, x.first(:expression_list) && x.first(:expression_list).value)
+        Rasp::AST::GetCall.new(full, x.identifier.value, x.first(:expression_list) && x.first(:expression_list).value)
       end
     }
   end
   rule identifier
-    (!reserved ident:/[A-Za-z_][A-Za-z0-9_]*/) { ident.to_sym } | "[" ident:/[^\]]+/ "]" { ident.to_sym }
+    (!reserved ident:/[A-Za-z_][A-Za-z0-9_]*/) { ident.downcase.to_sym } | "[" ident:/[^\]]+/ "]" { ident.downcase.to_sym }
   end
   rule reserved
     active_reserved | other_reserved
@@ -253,7 +258,7 @@ grammar Rasp::Parser
     (literal
     |(`new` SP class_name:(identifier ("." identifier)*)) { Rasp::AST::NewObject.new class_name }
     |("(" SP? expression SP? ")") { expression.value }
-    |objvalue
+    |objvalue { Rasp::AST::GetCall.from(super) }
     )
   end
 
@@ -273,14 +278,14 @@ grammar Rasp::Parser
     /[0-9]+\.[0-9]+/ { Rasp::AST::Float.new to_f }
   end
   rule string
-    /"([^"]|"")*"/ { Rasp::AST::String.new to_s }
+    /"([^"]|"")*"/ { Rasp::AST::String.new to_s.gsub(/^"|"$/, '').gsub('""', '"') }
   end
 
   rule ENDSTATEMENT
     /[ \t]*(?::|(?:'[^\n]+)?\n)[ \t]*/ { nil }
   end
   rule expression_list
-    ((expression SP? "," SP?)* expression) { find(:expression).map {|e| e.value } }
+    (list:(lhs:expression SP? "," SP?)* rhs:expression) { (first(:list) ? list.map {|x| x.lhs.value } : []) + [rhs.value] }
   end
 
 

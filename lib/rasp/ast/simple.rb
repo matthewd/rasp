@@ -8,21 +8,22 @@ class Assignment < Statement
     @var, @newval = var, newval
   end
   def bytecode(g)
-    if g.state.scope.variables.key? var
-      ref = g.state.scope.variable(var).reference
-    else
-      ref = g.state.scope.global.variable(var).reference
-    end
+    ref = g.state.scope.lookup_variable(g, var)
 
     @newval.bytecode(g)
     ref.set_bytecode(g)
     g.pop
+  end
+  def prescan(g)
+    @newval.prescan(g)
   end
 end
 class SetAssignment < Assignment
 end
 class ConstAssignment < Assignment
   def bytecode(g)
+  end
+  def prescan(g)
     if g.constants.key? @var
       raise "Duplicate constant: #@var"
     end
@@ -37,6 +38,8 @@ class Declaration < Statement
     @vars = vars
   end
   def bytecode(g)
+  end
+  def prescan(g)
     vars.each do |var|
       g.state.scope.variable(var)
     end
@@ -57,6 +60,9 @@ end
 class OptionExplicit < Statement
   def bytecode(g)
     # Compile option only
+  end
+  def prescan(g)
+    g.state.scope.global.explicit!
   end
 end
 class Randomize < Statement

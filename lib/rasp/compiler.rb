@@ -35,6 +35,7 @@ module Rasp
       g.local_count = 0
       g.local_names = []
 
+      ast.prescan g
       ast.bytecode g
       g.ret
       g.close

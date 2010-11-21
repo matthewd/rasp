@@ -1,11 +1,13 @@
 module Rasp::AST
 
-class Operator < Node
-end
 class UnaryOp < Node
   attr_accessor :inner
   def initialize(inner)
     @inner = inner
+  end
+
+  def prescan(g)
+    @inner.prescan(g)
   end
 end
 class BinaryOp < Node
@@ -14,9 +16,14 @@ class BinaryOp < Node
     @lhs, @rhs = lhs, rhs
   end
   def bytecode(g)
-    @rhs.bytecode(g)
     @lhs.bytecode(g)
+    @rhs.bytecode(g)
     op_bytecode g
+  end
+
+  def prescan(g)
+    @lhs.prescan(g)
+    @rhs.prescan(g)
   end
 end
 class ImpOp < BinaryOp
@@ -51,8 +58,28 @@ class Comparison < BinaryOp
   end
 end
 class StringAppend < BinaryOp
-  def op_bytecode(g)
-    g.string_dup
+  def bytecode(g)
+    case @rhs
+    when Rasp::AST::StringAppend, Rasp::AST::String
+      @rhs.bytecode(g)
+    else
+      @rhs.bytecode(g)
+      g.send_vcall :to_s
+    end
+
+    case @lhs
+    when Rasp::AST::StringAppend
+      # Already dupped
+      @lhs.bytecode(g)
+    when Rasp::AST::String
+      # Was a literal
+      @lhs.bytecode(g)
+    else
+      @lhs.bytecode(g)
+      g.send_vcall :to_s
+      g.string_dup
+    end
+
     g.string_append
   end
 end
@@ -81,6 +108,8 @@ class NewObject < Node
   attr_accessor :class_name
   def initialize(class_name)
     @class_name = class_name
+  end
+  def prescan(g)
   end
 end
 
