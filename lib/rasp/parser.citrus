@@ -24,25 +24,31 @@ grammar Rasp::Parser
     )* { matches.map {|m| m.value }.compact }
   end
   rule property_def
-    `property` SP (`get` | `let` | `set`) SP identifier SP? arg_def_list? ENDSTATEMENT
-    statement*
-    `end` SP `property` ENDSTATEMENT
+    (`property` SP ptype:(`get` | `let` | `set`) SP identifier SP? args:arg_def_list? ENDSTATEMENT
+    body:statement*
+    `end` SP `property` ENDSTATEMENT)
+    {
+      Rasp::AST::PropertyDef.new(ptype.value, identifier.value, args.matches.first.value, body.matches.map {|m| m.value }.compact)
+    }
   end
   rule sub_def
-    `sub` SP identifier SP? arg_def_list? ENDSTATEMENT
-    statement*
-    `end` SP `function` ENDSTATEMENT
+    (`sub` SP identifier SP? args:arg_def_list? ENDSTATEMENT
+    body:statement*
+    `end` SP `sub` ENDSTATEMENT)
+    {
+      Rasp::AST::SubDef.new(identifier.value, args.matches.first.value, body.matches.map {|m| m.value }.compact)
+    }
   end
   rule function_def
-    (`function` SP identifier SP? arg_def_list? ENDSTATEMENT
+    (`function` SP identifier SP? args:arg_def_list? ENDSTATEMENT
     body:statement*
     `end` SP `function` ENDSTATEMENT)
     {
-      Rasp::AST::FunctionDef.new(identifier.value, first(:arg_def_list) && first(:arg_def_list).value, body.matches.map {|m| m.value }.compact)
+      Rasp::AST::FunctionDef.new(identifier.value, args.matches.first.value, body.matches.map {|m| m.value }.compact)
     }
   end
   rule arg_def_list
-    ("(" SP? ( list:(arg_def SP? "," SP?)* arg_def SP? )? ")") { list.map {|l| l.arg_def.value } + [arg_def.value] }
+    ("(" SP? outr:( list:(arg_def SP? "," SP?)* arg_def SP? )? ")") { outr.first.list.map {|l| l.arg_def.value } + [outr.first.arg_def.value] }
   end
   rule arg_def
     ((`byref` SP | `byval` SP)? identifier) { identifier.value }

@@ -2,6 +2,10 @@
 module Rasp
   class Code
   end
+  class Function < Code
+    attr_accessor :name
+    def arity; method(:call).arity; end
+  end
 
   class Compiler
     module LocalVariables
@@ -11,9 +15,26 @@ module Rasp
         variable = Rubinius::Compiler::LocalVariable.new allocate_slot
         variables[name] = variable
       end
-
       def variable(name)
         variables[name] || new_local(name)
+      end
+
+      def lookup_variable(g, var)
+        if g.state.scope.variables.key?(var)
+          loop_var = g.state.scope.variable(var).reference
+        #elsif g.state.scope.global.variables.key?(var)
+        #  loop_var = g.state.scope.global.variable(var).reference
+        #elsif g.state.scope.global.supervariables.key?(var)
+        #  loop_var = g.state.scope.global.supervariables[var].reference
+        else
+          # Couldn't find it anywhere.
+          if explicit?
+            raise "Unknown variable #{var}"
+          else
+            #loop_var = g.state.scope.global.variable(var).reference
+            loop_var = g.state.scope.variable(var).reference
+          end
+        end
       end
     end
 
@@ -24,6 +45,8 @@ module Rasp
     end
 
     def compile(ast, filename="(rasp)", line_number=1)
+      @code = Rasp::Code.new
+
       g.name = :call
       g.file = filename.intern
       g.set_line line_number
@@ -34,6 +57,8 @@ module Rasp
 
       g.local_count = 0
       g.local_names = []
+
+      ast.compiler = self
 
       ast.prescan g
       ast.bytecode g
@@ -47,9 +72,66 @@ module Rasp
       cm = g.package ::Rubinius::CompiledMethod
       puts cm.decode if $DEBUG
 
-      code = Rasp::Code.new
       ss = ::Rubinius::StaticScope.new Object
-      ::Rubinius.attach_method g.name, cm, ss, code
+      ::Rubinius.attach_method g.name, cm, ss, @code
+
+      @code
+    end
+
+    def compile_function(ast, filename="(function)", line_number=1)
+      parent = g.state.scope
+
+      gg = Generator.new
+      gg.name = :"vb:#{ast.name}"
+      gg.file = filename.intern
+      gg.set_line line_number
+
+      arg_names = ast.args || []
+      p arg_names
+
+      gg.required_args = arg_names.size
+      gg.total_args = arg_names.size
+      gg.splat_index = nil
+
+      gg.local_count = 0
+      gg.local_names = []
+
+      args = arg_names.map {|arg| ast.new_local(arg) }
+      args.each do |arg|
+        #arg.reference.set_bytecode(gg)
+        #gg.pop
+      end
+
+      result = ast.new_local(ast.name) if ast.returns_value?
+
+      gg.push_state parent
+      ast.prescan gg
+      ast.bytecode gg
+      gg.pop_state
+
+      if ast.returns_value?
+        result.reference.get_bytecode(gg)
+      else
+        gg.push_nil
+      end
+      gg.ret
+      gg.close
+
+      gg.local_count = ast.local_count
+      gg.local_names = ast.local_names
+
+      p :compile_function
+      gg.encode
+      p :compile_function
+      cm = gg.package ::Rubinius::CompiledMethod
+      p :compile_function
+      puts cm.decode if $DEBUG
+      p :compile_function
+
+      code = Rasp::Function.new
+      code.name = ast.name
+      ss = ::Rubinius::StaticScope.new Object
+      ::Rubinius.attach_method gg.name, cm, ss, @code
 
       code
     end

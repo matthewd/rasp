@@ -2,9 +2,10 @@
 
 Dim i,j
 
-Dim fib, n
+Dim n
 
-'Function fib(n)
+Function fib(n)
+	WScript.Echo "zz"
 '	If True Then n = 2
 '	If 1 Then
 '		x = 1
@@ -12,7 +13,12 @@ Dim fib, n
 '	Else
 '		fib = zfib(n - 2) + zfib(n - 1) + fizz(777)
 '	End If
-'End Function
+	fib = 7
+End Function
+
+Sub xyzzy(n)
+	n = 3
+End Sub
 
 Const MIN = -1
 Const MAX = 1

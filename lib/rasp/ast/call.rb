@@ -33,10 +33,10 @@ class GetCall < Call
         @args.each do |a|
           a.bytecode(g)
         end
-        g.send @name, @args.size
+        g.send :"vb:#@name", @args.size
       else
         @target.bytecode(g)
-        g.send @name, 0
+        g.send :"vb:#@name", 0
       end
     else
       if @args.nil? || @args.empty?
@@ -57,7 +57,7 @@ class GetCall < Call
         @args.each do |a|
           a.bytecode(g)
         end
-        g.send @name, @args.size
+        g.send :"vb:#@name", @args.size
       end
     end
   end
