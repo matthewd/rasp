@@ -328,7 +328,7 @@ grammar Rasp::Parser
   end
 
   rule ENDSTATEMENT
-    /[ \t]*(?::|(?:'[^\n]+)?\n)[ \t]*/ { nil }
+    /[ \t]*(?::[ \t]*|(?:'[^\n]+)?\n[ \t]*)/ { nil }
   end
   rule expression_list
     (lhs:expression list:(SP? "," SP? rhs:expression
@@ -337,7 +337,7 @@ grammar Rasp::Parser
 
 
   rule EOL
-    /[ \t]*(?:(?:'[^\n]+)?\n[ \t]*)+/ { nil }
+    /[ \t]*(?:(?:(?:'[^\n]+)?\n[ \t]*)+)/ { nil }
   end
   rule comment
     /'[^\n]+/ { nil }

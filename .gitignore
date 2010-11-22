@@ -2,3 +2,7 @@
 *.tab.rb
 *.aspc
 *.vbsc
+pkg/*
+*.gem
+.bundle
+Gemfile.lock
