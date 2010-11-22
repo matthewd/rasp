@@ -3,7 +3,8 @@ module Rasp::AST
 class Statement < Node
 end
 class Assignment < Statement
-  attr_accessor :var, :newval
+  attr_accessor :var
+  node_attr :newval
   def initialize(var, newval)
     @var, @newval = var, newval
   end
@@ -66,7 +67,7 @@ class OptionExplicit < Statement
   end
 end
 class Randomize < Statement
-  attr_accessor :seed
+  node_attr :seed
   def initialize(seed=nil)
     @seed = seed
   end

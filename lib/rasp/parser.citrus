@@ -107,7 +107,7 @@ grammar Rasp::Parser
     (`if` SP expression SP `then` SP truepart:(single:single_line_if { [single] } | list:simple_statement_chain) (SP `else` SP falsepart:(single:single_line_if | list:simple_statement_chain EOL) | EOL) )
     {
       false_list = first(:falsepart) && (falsepart.first(:single) ? [falsepart.single.value] : falsepart.list.value)
-      Rasp::AST::If.new(expression.value, truepart.value, false_list)
+      Rasp::AST::If.new(expression.value, truepart.value.map {|x| x.value }, false_list)
     }
   end
   rule full_if_block

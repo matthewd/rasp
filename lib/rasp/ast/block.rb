@@ -4,7 +4,7 @@ class File < Node
   include Rasp::Compiler::LocalVariables
 
   attr_accessor :compiler
-  attr_accessor :statements
+  node_attr :statements
   def global; self; end
   def explicit?; @explicit; end
   def explicit!; @explicit = true; end
@@ -38,7 +38,8 @@ class LocalScope < Node
 end
 
 class FunctionDef < Node
-  attr_accessor :name, :args, :body
+  attr_accessor :name, :args
+  node_attr :body
   def initialize(name, args, body)
     @name, @args, @body = name, args, body
   end
@@ -49,7 +50,8 @@ class FunctionDef < Node
   end
 end
 class SubDef < Node
-  attr_accessor :name, :args, :body
+  attr_accessor :name, :args
+  node_attr :body
   def initialize(name, args, body)
     @name, @args, @body = name, args, body
   end
@@ -60,7 +62,8 @@ class SubDef < Node
   end
 end
 class PropertyDef < Node
-  attr_accessor :ptype, :name, :args, :body
+  attr_accessor :ptype, :name, :args
+  node_attr :body
   def initialize(ptype, name, args, body)
     @ptype, @name, @args, @body = ptype, name, args, body
   end
@@ -79,7 +82,8 @@ end
 class Function < LocalScope
   include Rasp::Compiler::LocalVariables
 
-  attr_accessor :name, :args, :body
+  attr_accessor :name, :args
+  node_attr :body
   def initialize(name, args, body)
     @name, @args, @body = name, args, body
   end

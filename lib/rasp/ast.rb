@@ -32,6 +32,32 @@ def self.list(lhs, ary, attr=:rhs)
 end
 
 class Node
+  def self.attr_names
+    @attr_names ||= []
+  end
+  def self.node_attr *names
+    attr_accessor *names
+    attr_names.push *names
+  end
+
+  def node_summary
+    s = ""
+    s << self.class.name.sub(/.*::/, '')
+    unless self.class.attr_names.empty?
+      s << "<"
+      s << self.class.attr_names.map {|x|
+        z = instance_variable_get(:"@#{x}")
+        if Array === z
+          "[#{z.map {|q| q ? q.node_summary : '0' }.join ','}]"
+        else
+          z ? z.node_summary : '0'
+        end
+      }.join(',')
+      s << ">"
+    end
+    s
+  end
+
   def graph
     Rubinius::AST::AsciiGrapher.new(self, Node).print
   end

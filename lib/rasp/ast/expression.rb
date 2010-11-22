@@ -1,7 +1,7 @@
 module Rasp::AST
 
 class UnaryOp < Node
-  attr_accessor :inner
+  node_attr :inner
   def initialize(inner)
     @inner = inner
   end
@@ -15,7 +15,7 @@ class UnaryOp < Node
   end
 end
 class BinaryOp < Node
-  attr_accessor :lhs, :rhs
+  node_attr :lhs, :rhs
   def initialize(lhs, rhs)
     @lhs, @rhs = lhs, rhs
   end

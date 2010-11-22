@@ -1,7 +1,8 @@
 module Rasp::AST
 
 class Loop < Node
-  attr_accessor :type, :body
+  attr_accessor :type
+  node_attr :body
   def initialize(type, body)
     @type, @body = type, body
   end
@@ -22,7 +23,7 @@ class Loop < Node
   end
 end
 class DoWhile < Loop
-  attr_accessor :condition
+  node_attr :condition
   def initialize(type, condition, invert, body)
     super(type, body)
     @condition = invert ? NotExpr.new(condition) : condition
@@ -74,7 +75,8 @@ class ForLoop < Loop
   # Contrary to my original expectation, not having used VBScript in
   # ages, all three of (start, finish, step) are fixed at loop start.
 
-  attr_accessor :var, :start, :finish, :step
+  attr_accessor :var
+  node_attr :start, :finish, :step
   def initialize(var, start, finish, step, body)
     super(:for, body)
     @var, @start, @finish, @step = var, start, finish, step
@@ -182,7 +184,8 @@ class ForLoop < Loop
   end
 end
 class ForEachLoop < Loop
-  attr_accessor :var, :collection
+  attr_accessor :var
+  node_attr :collection
   def initialize(var, collection, body)
     super(:for, body)
     @var, @collection = var, collection
@@ -199,7 +202,7 @@ class ForEachLoop < Loop
 end
 
 class If < Node
-  attr_accessor :condition, :true_body, :false_body
+  node_attr :condition, :true_body, :false_body
   def initialize(condition, true_body, false_body)
     @condition, @true_body, @false_body = condition, true_body, false_body
   end
@@ -242,7 +245,7 @@ class If < Node
 end
 
 class SelectCase < Container
-  attr_accessor :expr, :cases, :else_body
+  node_attr :expr, :cases, :else_body
   def initialize(expr, cases, else_body)
     @expr, @cases, @else_body = expr, cases, else_body
   end
@@ -273,7 +276,7 @@ class SelectCase < Container
   end
 end
 class Case < Node
-  attr_accessor :matches, :body
+  node_attr :matches, :body
   def initialize(matches, body)
     @matches, @body = matches, body
   end

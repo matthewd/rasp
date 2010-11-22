@@ -1,7 +1,8 @@
 module Rasp::AST
 
 class Call < Node
-  attr_accessor :target, :name, :args
+  attr_accessor :name
+  node_attr :target, :args
   def initialize(target, name, args)
     @target, @name, @args = target, name, args
   end
@@ -69,7 +70,8 @@ class NullCall < GetCall
   end
 end
 class LetCall < Node
-  attr_accessor :target, :name, :args, :value
+  attr_accessor :name
+  node_attr :target, :args, :value
   def initialize(target, name, args, value)
     @target, @name, @args, @value = target, name, args, value
   end
