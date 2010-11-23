@@ -26,7 +26,7 @@ def self.binary_op(klass, lhs, ary, op_attr=nil, attr=:rhs)
 end
 
 def self.list(lhs, ary, attr=:rhs)
-  [lhs] + ary.matches.map do |curr|
+  [lhs.value] + ary.matches.map do |curr|
     curr.send(attr).value
   end
 end
